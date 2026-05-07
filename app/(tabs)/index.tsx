@@ -1,98 +1,148 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Button, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useAgregarCarro, useCarros } from "../../src/hooks/useCarros";
+import { useAuth } from '../../src/providers/auth-provider';
 
-export default function HomeScreen() {
+export default function App() {
+  const router = useRouter();
+  const { signOut } = useAuth();
+  const [marca, setMarca] = useState('');
+  const { data: carros = [] } = useCarros();
+  const agregarMutation = useAgregarCarro();
+
+  const agregar = () => {
+    agregarMutation.mutate(marca, {
+      onSuccess: () => {
+        setMarca('');
+      },
+    });
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    router.replace('/login');
+  };
+
+ 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.kicker}>Sesión activa</Text>
+          <Text style={styles.title}>Gestión de carros</Text>
+        </View>
+        <Pressable style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Salir</Text>
+        </Pressable>
+      </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <View style={styles.formCard}>
+        <Text style={styles.sectionTitle}>Agregar carro</Text>
+        <TextInput
+          value={marca}
+          onChangeText={setMarca}
+          placeholder="Marca"
+          placeholderTextColor="#94a3b8"
+          style={styles.input}
+        />
+        <Button title="Agregar" onPress={agregar} />
+      </View>
+
+      <FlatList
+        data={carros}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={<Text style={styles.emptyState}>Todavía no hay carros registrados.</Text>}
+        renderItem={renderCarroItem}
+      />
+    </View>
   );
 }
 
+const renderCarroItem = ({ item }: { item: { marca: string } }) => (
+  <View style={styles.item}>
+    <Text style={styles.itemText}>{item.marca}</Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    padding: 20,
+    paddingTop: 60,
+    gap: 18,
+  },
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  kicker: {
+    color: '#64748b',
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  title: {
+    color: '#0f172a',
+    fontSize: 28,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  logoutButton: {
+    backgroundColor: '#0f172a',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  logoutText: {
+    color: '#f8fafc',
+    fontWeight: '700',
+  },
+  formCard: {
+    backgroundColor: '#e2e8f0',
+    borderRadius: 20,
+    padding: 16,
+    gap: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#94a3b8',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#0f172a',
+    backgroundColor: '#f8fafc',
+  },
+  list: {
+    gap: 12,
+    paddingBottom: 24,
+  },
+  item: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  itemText: {
+    color: '#0f172a',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyState: {
+    color: '#64748b',
+    textAlign: 'center',
+    paddingVertical: 24,
   },
 });
